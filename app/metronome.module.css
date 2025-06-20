@@ -325,7 +325,7 @@
 /* Debug information styling */
 .debugInfo {
   position: fixed;
-  bottom: 10px;
+  bottom: 60px;
   left: 10px;
   background-color: rgba(0, 0, 0, 0.8);
   color: white;
@@ -339,6 +339,27 @@
 
 .debugInfo div {
   margin-bottom: 2px;
+}
+
+/* Clear session button styling */
+.clearSessionButton {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  background-color: #ff4444;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  font-family: monospace;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  z-index: 1000;
+}
+
+.clearSessionButton:hover {
+  background-color: #ff6666;
 }
 
 /* Responsive adjustments for upgrade message */

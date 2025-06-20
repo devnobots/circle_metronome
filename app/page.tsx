@@ -195,8 +195,16 @@ export default function Metronome() {
       timeTrackingIntervalRef.current = setInterval(() => {
         runningTimeRef.current += 1
 
-        // Use configurable trial timeout if trial has expired and user hasn't upgraded
-        const timeoutSeconds = isTrialExpired && !hasUpgraded ? EXPIRED_TRIAL_RUN_TIME_SECONDS : 10
+        // Determine timeout based on trial status and upgrade status
+        let timeoutSeconds = 10 // Default timeout for normal users
+
+        if (isTrialExpired && !hasUpgraded) {
+          // Trial expired and not upgraded - use shorter timeout
+          timeoutSeconds = EXPIRED_TRIAL_RUN_TIME_SECONDS
+        } else if (hasUpgraded) {
+          // User has upgraded - no timeout (set to very high number to effectively disable)
+          timeoutSeconds = 999999
+        }
 
         if (runningTimeRef.current === timeoutSeconds && !isSlowingDown) {
           setIsSlowingDown(true)
@@ -232,7 +240,8 @@ export default function Metronome() {
 
   // Handle slowdown logic based on dot position
   useEffect(() => {
-    if (isSlowingDown && isPlaying) {
+    // Only apply slowdown logic if user hasn't upgraded
+    if (isSlowingDown && isPlaying && !hasUpgraded) {
       // Check if dot is exactly at the top (within 2 degrees of 0)
       const isAtTop = dotPosition <= 2 || dotPosition >= 358
 
@@ -273,7 +282,7 @@ export default function Metronome() {
         }
       }
     }
-  }, [dotPosition, isSlowingDown, isPlaying, bpm])
+  }, [dotPosition, isSlowingDown, isPlaying, bpm, hasUpgraded])
 
   // Handle BPM changes - only allow during normal operation
   useEffect(() => {
@@ -421,6 +430,16 @@ export default function Metronome() {
   const handleFiveMinuteSessions = () => {
     // For now, just hide the upgrade message
     // You can implement 5-minute session logic here later
+    setShowUpgradeMessage(false)
+  }
+
+  // Handle clear session count for testing
+  const handleClearSessionCount = () => {
+    localStorage.removeItem("metronome_session_count")
+    localStorage.removeItem("metronome_has_upgraded")
+    setSessionCount(0)
+    setHasUpgraded(false)
+    setIsTrialExpired(false)
     setShowUpgradeMessage(false)
   }
 
@@ -750,6 +769,11 @@ export default function Metronome() {
         <div>Trial Expired: {isTrialExpired ? "Yes" : "No"}</div>
         <div>Has Upgraded: {hasUpgraded ? "Yes" : "No"}</div>
       </div>
+
+      {/* Clear Session Button for Testing */}
+      <button className={styles.clearSessionButton} onClick={handleClearSessionCount}>
+        Clear Session Count
+      </button>
     </div>
   )
 }
