@@ -196,7 +196,7 @@ export default function Metronome() {
         runningTimeRef.current += 1
 
         // Determine timeout based on trial status and upgrade status
-        let timeoutSeconds = 10 // Default timeout for normal users
+        let timeoutSeconds = 999999 // Default: no timeout for normal users (sessions 1-5)
 
         if (isTrialExpired && !hasUpgraded) {
           // Trial expired and not upgraded - use shorter timeout
@@ -205,6 +205,7 @@ export default function Metronome() {
           // User has upgraded - no timeout (set to very high number to effectively disable)
           timeoutSeconds = 999999
         }
+        // Note: For sessions 1-5 (not trial expired), timeoutSeconds remains 999999 (no timeout)
 
         if (runningTimeRef.current === timeoutSeconds && !isSlowingDown) {
           setIsSlowingDown(true)
@@ -225,8 +226,10 @@ export default function Metronome() {
 
       // Handle display BPM based on how we stopped
       if (isSlowingDown) {
-        // Stopped due to slowdown - show upgrade message
-        setShowUpgradeMessage(true)
+        // Stopped due to slowdown - show upgrade message only if trial expired and not upgraded
+        if (isTrialExpired && !hasUpgraded) {
+          setShowUpgradeMessage(true)
+        }
         setDisplayBpm(originalBpmRef.current)
         setIsSlowingDown(false)
         setBpm(originalBpmRef.current)
