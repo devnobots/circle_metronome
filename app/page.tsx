@@ -7,6 +7,10 @@ import { Plus, Minus } from "lucide-react"
 import styles from "./metronome.module.css"
 
 export default function Metronome() {
+  // ===== CONFIGURABLE VARIABLES =====
+  const MAX_TRIAL_SESSION_COUNT = 5 // After this many sessions, trial mode kicks in
+  const EXPIRED_TRIAL_RUN_TIME_SECONDS = 10 // How long metronome runs before decrement mode
+
   const [bpm, setBpm] = useState(70) // Default 70 BPM - this is the actual BPM used for timing
   const [isPlaying, setIsPlaying] = useState(false)
   const [dotPosition, setDotPosition] = useState(0) // 0 to 360 degrees
@@ -16,6 +20,14 @@ export default function Metronome() {
   // Simplified state management
   const [displayBpm, setDisplayBpm] = useState(70) // BPM shown in the display
   const [isSlowingDown, setIsSlowingDown] = useState(false) // Track if we're in slowdown mode
+
+  // Add state for showing the upgrade message
+  const [showUpgradeMessage, setShowUpgradeMessage] = useState(false)
+
+  // Session tracking state
+  const [sessionCount, setSessionCount] = useState(0)
+  const [isTrialExpired, setIsTrialExpired] = useState(false)
+  const [hasUpgraded, setHasUpgraded] = useState(false)
 
   // Refs for audio and animation
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -46,6 +58,28 @@ export default function Metronome() {
   const MAX_BPM = 240
   const BPM_STEP = 1
   const DEBOUNCE_TIME = 100
+
+  // Initialize session tracking
+  useEffect(() => {
+    // Get session count from localStorage
+    const storedSessionCount = localStorage.getItem("metronome_session_count")
+    const storedHasUpgraded = localStorage.getItem("metronome_has_upgraded")
+
+    const currentSessionCount = storedSessionCount ? Number.parseInt(storedSessionCount) : 0
+    const userHasUpgraded = storedHasUpgraded === "true"
+
+    // Increment session count
+    const newSessionCount = currentSessionCount + 1
+    localStorage.setItem("metronome_session_count", newSessionCount.toString())
+
+    setSessionCount(newSessionCount)
+    setHasUpgraded(userHasUpgraded)
+
+    // Check if trial has expired
+    if (newSessionCount > MAX_TRIAL_SESSION_COUNT && !userHasUpgraded) {
+      setIsTrialExpired(true)
+    }
+  }, [])
 
   // Keep currentBpmRef in sync with bpm
   useEffect(() => {
@@ -161,8 +195,10 @@ export default function Metronome() {
       timeTrackingIntervalRef.current = setInterval(() => {
         runningTimeRef.current += 1
 
-        // After 10 seconds, start slowing down
-        if (runningTimeRef.current === 10 && !isSlowingDown) {
+        // Use configurable trial timeout if trial has expired and user hasn't upgraded
+        const timeoutSeconds = isTrialExpired && !hasUpgraded ? EXPIRED_TRIAL_RUN_TIME_SECONDS : 10
+
+        if (runningTimeRef.current === timeoutSeconds && !isSlowingDown) {
           setIsSlowingDown(true)
         }
       }, 1000)
@@ -181,16 +217,18 @@ export default function Metronome() {
 
       // Handle display BPM based on how we stopped
       if (isSlowingDown) {
-        // Stopped due to slowdown - show original BPM in display and reset actual BPM
+        // Stopped due to slowdown - show upgrade message
+        setShowUpgradeMessage(true)
         setDisplayBpm(originalBpmRef.current)
         setIsSlowingDown(false)
         setBpm(originalBpmRef.current)
       } else {
-        // Stopped manually - display should already match BPM
+        // Stopped manually - hide upgrade message and display should already match BPM
+        setShowUpgradeMessage(false)
         setDisplayBpm(bpm)
       }
     }
-  }, [isPlaying])
+  }, [isPlaying, isTrialExpired, hasUpgraded])
 
   // Handle slowdown logic based on dot position
   useEffect(() => {
@@ -202,11 +240,8 @@ export default function Metronome() {
         // We're at the top and haven't decremented this cycle yet
         const newBpm = bpm - 5
 
-        console.log(`Slowdown: Decrementing BPM from ${bpm} to ${newBpm} at position ${dotPosition.toFixed(1)}°`)
-
         if (newBpm <= MIN_BPM) {
           // Stop the metronome when reaching minimum BPM
-          console.log(`Slowdown: Stopping metronome at ${newBpm} BPM`)
           setIsPlaying(false)
         } else {
           // Decrement BPM and mark that we've decremented this cycle
@@ -229,14 +264,11 @@ export default function Metronome() {
           if (dotPosition <= 5 || dotPosition >= 355) {
             lastBeatTimeRef.current = now - newElapsedTime
           }
-
-          console.log(`Slowdown: Reset animation timing at ${dotPosition.toFixed(1)}° for smooth transition`)
         }
       } else if (dotPosition > 180) {
         // Reset the decrement flag when we're past the halfway point (bottom half of circle)
         // This ensures we only decrement once per complete cycle
         if (hasDecrementedThisCycleRef.current) {
-          console.log(`Slowdown: Resetting decrement flag at position ${dotPosition.toFixed(1)}°`)
           hasDecrementedThisCycleRef.current = false
         }
       }
@@ -340,7 +372,6 @@ export default function Metronome() {
 
       const beatProgress = (elapsedSinceLastBeat % beatDuration) / beatDuration
       const newPosition = beatProgress * 360
-      console.log(`Animation: Using BPM ${currentBpm} at position ${newPosition.toFixed(1)}°`)
       setDotPosition(newPosition)
 
       if (isPlaying) {
@@ -358,6 +389,12 @@ export default function Metronome() {
       setBpm(70)
       setDisplayBpm(70)
     }
+
+    // Hide upgrade message when manually starting
+    if (!isPlaying) {
+      setShowUpgradeMessage(false)
+    }
+
     setIsPlaying(!isPlaying)
   }
 
@@ -371,6 +408,20 @@ export default function Metronome() {
     if (bpm > MIN_BPM && !isSlowingDown) {
       setBpm((prev) => prev - BPM_STEP)
     }
+  }
+
+  // Handle upgrade button click
+  const handleUpgrade = () => {
+    localStorage.setItem("metronome_has_upgraded", "true")
+    setHasUpgraded(true)
+    setShowUpgradeMessage(false)
+  }
+
+  // Handle 5-minute sessions button click
+  const handleFiveMinuteSessions = () => {
+    // For now, just hide the upgrade message
+    // You can implement 5-minute session logic here later
+    setShowUpgradeMessage(false)
   }
 
   // Debounced functions
@@ -635,41 +686,69 @@ export default function Metronome() {
         />
       </div>
 
-      <div className={styles.controls}>
-        <button
-          className={styles.tempoButton}
-          onMouseDown={handleDecreaseMouseDown}
-          onMouseUp={handleDecreaseMouseUp}
-          onMouseLeave={handleDecreaseMouseUp}
-          onTouchStart={handleDecreaseTouchStart}
-          onTouchEnd={handleDecreaseTouchEnd}
-          onTouchCancel={handleDecreaseTouchEnd}
-          onContextMenu={(e) => e.preventDefault()}
-          aria-label="Decrease tempo"
-        >
-          <Minus size={24} />
-        </button>
-        <div className={styles.bpmDisplay}>
-          <div className={styles.bpmValue} style={{ color: bpmTextColor }}>
-            {displayBpm}
+      {!showUpgradeMessage ? (
+        <div className={styles.controls}>
+          <button
+            className={styles.tempoButton}
+            onMouseDown={handleDecreaseMouseDown}
+            onMouseUp={handleDecreaseMouseUp}
+            onMouseLeave={handleDecreaseMouseUp}
+            onTouchStart={handleDecreaseTouchStart}
+            onTouchEnd={handleDecreaseTouchEnd}
+            onTouchCancel={handleDecreaseTouchEnd}
+            onContextMenu={(e) => e.preventDefault()}
+            aria-label="Decrease tempo"
+          >
+            <Minus size={24} />
+          </button>
+          <div className={styles.bpmDisplay}>
+            <div className={styles.bpmValue} style={{ color: bpmTextColor }}>
+              {displayBpm}
+            </div>
+            <div className={styles.bpmLabel} style={{ color: bpmTextColor }}>
+              BPM
+            </div>
           </div>
-          <div className={styles.bpmLabel} style={{ color: bpmTextColor }}>
-            BPM
+          <button
+            className={styles.tempoButton}
+            onMouseDown={handleIncreaseMouseDown}
+            onMouseUp={handleIncreaseMouseUp}
+            onMouseLeave={handleIncreaseMouseUp}
+            onTouchStart={handleIncreaseTouchStart}
+            onTouchEnd={handleIncreaseTouchEnd}
+            onTouchCancel={handleIncreaseTouchEnd}
+            onContextMenu={(e) => e.preventDefault()}
+            aria-label="Increase tempo"
+          >
+            <Plus size={24} />
+          </button>
+        </div>
+      ) : (
+        <div className={styles.upgradeMessage}>
+          <h2 className={styles.upgradeHeadline}>Unlock the Full Circle.</h2>
+          <p className={styles.upgradeBody}>
+            You've experienced The Circular Metronome's fluid, uninterrupted motion. Upgrade to enjoy unlimited sessions
+            without interruption. You can also continue using the metronome for free, though sessions will be limited to
+            5 minutes.
+          </p>
+          <div className={styles.upgradeButtons}>
+            <button className={styles.upgradeButton} onClick={handleUpgrade}>
+              Upgrade Now
+            </button>
+            <button className={styles.standardButton} onClick={handleFiveMinuteSessions}>
+              5 Minute Sessions
+            </button>
           </div>
         </div>
-        <button
-          className={styles.tempoButton}
-          onMouseDown={handleIncreaseMouseDown}
-          onMouseUp={handleIncreaseMouseUp}
-          onMouseLeave={handleIncreaseMouseUp}
-          onTouchStart={handleIncreaseTouchStart}
-          onTouchEnd={handleIncreaseTouchEnd}
-          onTouchCancel={handleIncreaseTouchEnd}
-          onContextMenu={(e) => e.preventDefault()}
-          aria-label="Increase tempo"
-        >
-          <Plus size={24} />
-        </button>
+      )}
+
+      {/* Debug Information */}
+      <div className={styles.debugInfo}>
+        <div>Current Session Count: {sessionCount}</div>
+        <div>Max Trial Session Count: {MAX_TRIAL_SESSION_COUNT}</div>
+        <div>Expired Trial Timeout Time: {EXPIRED_TRIAL_RUN_TIME_SECONDS}s</div>
+        <div>Trial Expired: {isTrialExpired ? "Yes" : "No"}</div>
+        <div>Has Upgraded: {hasUpgraded ? "Yes" : "No"}</div>
       </div>
     </div>
   )

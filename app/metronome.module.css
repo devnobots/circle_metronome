@@ -1,4 +1,18 @@
 @font-face {
+  font-family: "Montserrat";
+  src: url("/fonts/Montserrat-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Montserrat";
+  src: url("/fonts/Montserrat-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
   font-family: "Elegant Typewriter";
   src: url("/fonts/elegant-typewriter.ttf") format("truetype");
   font-weight: normal;
@@ -224,4 +238,148 @@
   max-width: 90%;
   line-height: 1.4;
   letter-spacing: 0.5px;
+}
+
+/* Upgrade message styling - positioned below the circle without affecting circle position */
+.upgradeMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  max-width: 500px;
+  margin-top: -100px;
+  padding: 3rem 2rem 2rem 2rem; /* Increased top padding for generous breathing room */
+  font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.upgradeHeadline {
+  font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 700; /* Bold */
+  font-size: 2rem;
+  margin-bottom: 2rem; /* Increased from 1.5rem for generous bottom padding */
+  color: #000;
+  letter-spacing: -0.02em; /* Very slightly tightened for visual cohesion */
+  line-height: 1.2;
+}
+
+.upgradeBody {
+  font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 400; /* Regular */
+  font-size: 1.1rem;
+  line-height: 1.8; /* Increased by 20% from 1.5 for airy, elegant feel */
+  color: #333;
+  margin-bottom: 2.5rem; /* Increased for generous bottom padding */
+  letter-spacing: 0.05em; /* Very slightly open for readability */
+  text-align: left; /* Left-aligned for better readability */
+  max-width: 45ch; /* Approximately 50-70 characters per line */
+}
+
+.upgradeButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 300px;
+}
+
+.upgradeButton {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  background-color: #000;
+  color: white;
+  border: none;
+  border-radius: 2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: 0.5px;
+}
+
+.upgradeButton:hover {
+  background-color: #333;
+  transform: translateY(-1px);
+}
+
+.standardButton {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  background-color: transparent;
+  color: #000;
+  border: 2px solid #000;
+  border-radius: 2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: 0.5px;
+}
+
+.standardButton:hover {
+  background-color: #000;
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* Debug information styling */
+.debugInfo {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px;
+  border-radius: 5px;
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  z-index: 1000;
+}
+
+.debugInfo div {
+  margin-bottom: 2px;
+}
+
+/* Responsive adjustments for upgrade message */
+@media (max-width: 768px) {
+  .upgradeMessage {
+    padding: 1.5rem;
+    margin-top: -70px; /* Adjusted for mobile */
+  }
+
+  .upgradeHeadline {
+    font-size: 1.7rem;
+  }
+
+  .upgradeBody {
+    font-size: 1rem;
+  }
+
+  .upgradeButton,
+  .standardButton {
+    padding: 0.9rem 1.8rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .upgradeMessage {
+    padding: 1rem;
+    margin-top: -40px; /* Adjusted for small mobile */
+  }
+
+  .upgradeHeadline {
+    font-size: 1.5rem;
+  }
+
+  .upgradeBody {
+    font-size: 0.95rem;
+  }
+
+  .upgradeButton,
+  .standardButton {
+    padding: 0.8rem 1.5rem;
+    font-size: 0.95rem;
+  }
 }
