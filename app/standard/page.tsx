@@ -4,18 +4,12 @@ import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
 import { Plus, Minus } from "lucide-react"
-import styles from "./metronome.module.css"
+import styles from "./standard-metronome.module.css"
 
-export default function Metronome() {
-  const [bpm, setBpm] = useState(70) // Default 70 BPM - this is the actual BPM used for timing
+export default function StandardMetronome() {
+  const [bpm, setBpm] = useState(70) // Default 70 BPM
   const [isPlaying, setIsPlaying] = useState(false)
-  const [dotPosition, setDotPosition] = useState(0) // 0 to 360 degrees
-  const [scaleEffect, setScaleEffect] = useState(1) // Scale factor for zoom effect
-  const [hasReached75Percent, setHasReached75Percent] = useState(false) // Track if dot has reached 75% position
-
-  // Simplified state management
-  const [displayBpm, setDisplayBpm] = useState(70) // BPM shown in the display
-  const [isSlowingDown, setIsSlowingDown] = useState(false) // Track if we're in slowdown mode
+  const [pendulumAngle, setPendulumAngle] = useState(0) // -45 to +45 degrees
 
   // Refs for audio and animation
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -23,12 +17,7 @@ export default function Metronome() {
   const startTimeRef = useRef<number | null>(null)
   const lastBeatTimeRef = useRef<number | null>(null)
   const currentBpmRef = useRef<number>(bpm)
-
-  // Slowdown-specific refs
-  const runningTimeRef = useRef<number>(0)
-  const timeTrackingIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const originalBpmRef = useRef<number>(70) // Store original BPM for display
-  const hasDecrementedThisCycleRef = useRef<boolean>(false) // Track if we've decremented on this beat cycle
+  const previousAngleRef = useRef<number>(0)
 
   // Refs for button hold functionality
   const increaseIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -46,18 +35,12 @@ export default function Metronome() {
   const MAX_BPM = 240
   const BPM_STEP = 1
   const DEBOUNCE_TIME = 100
+  const MAX_ANGLE = 45 // Maximum swing angle in degrees
 
-  // Keep currentBpmRef in sync with bpm
+  // Update the current BPM ref when bpm state changes
   useEffect(() => {
     currentBpmRef.current = bpm
   }, [bpm])
-
-  // Sync displayBpm with bpm ONLY when not in slowdown mode
-  useEffect(() => {
-    if (!isSlowingDown) {
-      setDisplayBpm(bpm)
-    }
-  }, [bpm, isSlowingDown])
 
   // Initialize audio context
   useEffect(() => {
@@ -81,39 +64,33 @@ export default function Metronome() {
     }
   }, [])
 
+  // Comprehensive cleanup function
   const cleanupAllIntervals = () => {
-    // Clear increase button intervals and timeouts
     if (increaseIntervalRef.current) {
       clearInterval(increaseIntervalRef.current)
       increaseIntervalRef.current = null
     }
+
     increaseTimeoutsRef.current.forEach((timeout) => {
       if (timeout) clearTimeout(timeout)
     })
     increaseTimeoutsRef.current = []
 
-    // Clear decrease button intervals and timeouts
     if (decreaseIntervalRef.current) {
       clearInterval(decreaseIntervalRef.current)
       decreaseIntervalRef.current = null
     }
+
     decreaseTimeoutsRef.current.forEach((timeout) => {
       if (timeout) clearTimeout(timeout)
     })
     decreaseTimeoutsRef.current = []
 
-    // Clear time tracking interval
-    if (timeTrackingIntervalRef.current) {
-      clearInterval(timeTrackingIntervalRef.current)
-      timeTrackingIntervalRef.current = null
-    }
-
-    // Reset touch flags
     increaseTouchActiveRef.current = false
     decreaseTouchActiveRef.current = false
   }
 
-  // Function to play a click tone using Web Audio API
+  // Function to play a click tone using Web Audio API (same as circular version)
   const playClickTone = () => {
     if (!audioContextRef.current) return
 
@@ -146,111 +123,21 @@ export default function Metronome() {
   // Handle play/stop state changes
   useEffect(() => {
     if (isPlaying) {
-      // Starting the metronome
       resetTiming()
       startAnimation()
-      setHasReached75Percent(false)
-
-      // Reset slowdown state and start time tracking
-      setIsSlowingDown(false)
-      runningTimeRef.current = 0
-      originalBpmRef.current = bpm // Capture the starting BPM
-      hasDecrementedThisCycleRef.current = false
-
-      // Start time tracking for slowdown
-      timeTrackingIntervalRef.current = setInterval(() => {
-        runningTimeRef.current += 1
-
-        // After 10 seconds, start slowing down
-        if (runningTimeRef.current === 10 && !isSlowingDown) {
-          setIsSlowingDown(true)
-        }
-      }, 1000)
     } else {
-      // Stopping the metronome
       stopAnimation()
-
-      // Clean up time tracking interval
-      if (timeTrackingIntervalRef.current) {
-        clearInterval(timeTrackingIntervalRef.current)
-        timeTrackingIntervalRef.current = null
-      }
-
-      // Reset running time
-      runningTimeRef.current = 0
-
-      // Handle display BPM based on how we stopped
-      if (isSlowingDown) {
-        // Stopped due to slowdown - show original BPM in display and reset actual BPM
-        setDisplayBpm(originalBpmRef.current)
-        setIsSlowingDown(false)
-        setBpm(originalBpmRef.current)
-      } else {
-        // Stopped manually - display should already match BPM
-        setDisplayBpm(bpm)
-      }
     }
   }, [isPlaying])
 
-  // Handle slowdown logic based on dot position
+  // Handle BPM changes
   useEffect(() => {
-    if (isSlowingDown && isPlaying) {
-      // Check if dot is exactly at the top (within 2 degrees of 0)
-      const isAtTop = dotPosition <= 2 || dotPosition >= 358
-
-      if (isAtTop && !hasDecrementedThisCycleRef.current) {
-        // We're at the top and haven't decremented this cycle yet
-        const newBpm = bpm - 5
-
-        console.log(`Slowdown: Decrementing BPM from ${bpm} to ${newBpm} at position ${dotPosition.toFixed(1)}°`)
-
-        if (newBpm <= MIN_BPM) {
-          // Stop the metronome when reaching minimum BPM
-          console.log(`Slowdown: Stopping metronome at ${newBpm} BPM`)
-          setIsPlaying(false)
-        } else {
-          // Decrement BPM and mark that we've decremented this cycle
-          setBpm(newBpm)
-          hasDecrementedThisCycleRef.current = true
-
-          // Reset only the animation timing to prevent visual jerk, but preserve beat timing
-          const now = performance.now()
-
-          // Calculate where we should be in the new beat cycle based on current position
-          const currentBeatProgress = dotPosition / 360
-          const newBeatDuration = 60000 / newBpm
-          const newElapsedTime = currentBeatProgress * newBeatDuration
-
-          // Set the animation start time to maintain smooth visual transition
-          startTimeRef.current = now - newElapsedTime
-
-          // Only reset lastBeatTimeRef if we're very close to the top (within 5 degrees)
-          // This ensures the beat will trigger properly at the top
-          if (dotPosition <= 5 || dotPosition >= 355) {
-            lastBeatTimeRef.current = now - newElapsedTime
-          }
-
-          console.log(`Slowdown: Reset animation timing at ${dotPosition.toFixed(1)}° for smooth transition`)
-        }
-      } else if (dotPosition > 180) {
-        // Reset the decrement flag when we're past the halfway point (bottom half of circle)
-        // This ensures we only decrement once per complete cycle
-        if (hasDecrementedThisCycleRef.current) {
-          console.log(`Slowdown: Resetting decrement flag at position ${dotPosition.toFixed(1)}°`)
-          hasDecrementedThisCycleRef.current = false
-        }
-      }
+    if (isPlaying) {
+      resetTiming()
+      stopAnimation()
+      startAnimation()
     }
-  }, [dotPosition, isSlowingDown, isPlaying, bpm])
-
-  // Handle BPM changes - only allow during normal operation
-  useEffect(() => {
-    if (isSlowingDown) {
-      // During slowdown, ignore manual BPM changes
-      return
-    }
-    // For manual BPM changes during normal operation, animation continues smoothly
-  }, [bpm, isSlowingDown])
+  }, [bpm])
 
   // Reset timing references
   const resetTiming = () => {
@@ -261,7 +148,9 @@ export default function Metronome() {
     const now = performance.now()
     startTimeRef.current = now
     lastBeatTimeRef.current = now
-    setDotPosition(0)
+
+    setPendulumAngle(0)
+    previousAngleRef.current = 0
   }
 
   // Start animation
@@ -269,7 +158,7 @@ export default function Metronome() {
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current)
     }
-    animateMetronome()
+    animatePendulum()
   }
 
   // Stop animation
@@ -278,42 +167,11 @@ export default function Metronome() {
       cancelAnimationFrame(animationRef.current)
       animationRef.current = null
     }
-    setDotPosition(0)
+    setPendulumAngle(0)
   }
 
-  // Track when dot reaches 75% position (270 degrees)
-  useEffect(() => {
-    if (isPlaying && dotPosition >= 270 && !hasReached75Percent) {
-      setHasReached75Percent(true)
-    }
-  }, [dotPosition, isPlaying, hasReached75Percent])
-
-  // Calculate zoom effect based on dot position (only after reaching 75% position)
-  useEffect(() => {
-    if (isPlaying && hasReached75Percent) {
-      const isInZoomRange = dotPosition >= 270 || dotPosition <= 90
-
-      if (isInZoomRange) {
-        let distanceFromTop
-        if (dotPosition >= 270) {
-          distanceFromTop = 360 - dotPosition
-        } else {
-          distanceFromTop = dotPosition
-        }
-
-        const maxZoomDistance = 90
-        const zoomFactor = 0.7 + 0.2 * (1 - distanceFromTop / maxZoomDistance)
-        setScaleEffect(zoomFactor)
-      } else {
-        setScaleEffect(0.7)
-      }
-    } else {
-      setScaleEffect(0.7)
-    }
-  }, [dotPosition, isPlaying, hasReached75Percent])
-
-  // Animation function
-  const animateMetronome = () => {
+  // Pendulum animation function
+  const animatePendulum = () => {
     const animate = (timestamp: number) => {
       if (!isPlaying) {
         stopAnimation()
@@ -324,24 +182,40 @@ export default function Metronome() {
         startTimeRef.current = timestamp
       }
 
-      if (!lastBeatTimeRef.current) {
-        lastBeatTimeRef.current = timestamp
-      }
-
       const currentBpm = currentBpmRef.current
-      const beatDuration = 60000 / currentBpm
-      const elapsedSinceLastBeat = timestamp - lastBeatTimeRef.current
 
-      if (elapsedSinceLastBeat >= beatDuration) {
-        playClickTone()
-        const beatsSinceLastBeat = Math.floor(elapsedSinceLastBeat / beatDuration)
-        lastBeatTimeRef.current = lastBeatTimeRef.current + beatsSinceLastBeat * beatDuration
+      // Calculate how long one complete swing cycle should take
+      // For a metronome, one beat = one swing from center to side and back to center
+      // So one complete cycle (left-center-right-center) = 2 beats
+      const beatDuration = 60000 / currentBpm // milliseconds per beat
+      const cycleDuration = beatDuration * 2 // full swing cycle duration
+
+      // Calculate elapsed time since start
+      const elapsedTime = timestamp - startTimeRef.current
+
+      // Calculate position in the swing cycle (0 to 1)
+      const cycleProgress = (elapsedTime % cycleDuration) / cycleDuration
+
+      // Convert to pendulum angle using cosine for natural pendulum motion
+      // This creates: left (-45°) -> center (0°) -> right (+45°) -> center (0°) -> repeat
+      const angle = MAX_ANGLE * Math.cos(cycleProgress * Math.PI * 2)
+
+      // Store the previous angle for center crossing detection
+      const previousAngle = previousAngleRef.current
+
+      // Detect center crossing (when pendulum passes through 0 degrees)
+      // Beat occurs when crossing center line
+      if ((previousAngle < -5 && angle >= -5) || (previousAngle > 5 && angle <= 5)) {
+        // Check if enough time has passed since last beat
+        const timeSinceLastBeat = timestamp - (lastBeatTimeRef.current || startTimeRef.current)
+        if (timeSinceLastBeat > beatDuration * 0.8) {
+          playClickTone()
+          lastBeatTimeRef.current = timestamp
+        }
       }
 
-      const beatProgress = (elapsedSinceLastBeat % beatDuration) / beatDuration
-      const newPosition = beatProgress * 360
-      console.log(`Animation: Using BPM ${currentBpm} at position ${newPosition.toFixed(1)}°`)
-      setDotPosition(newPosition)
+      previousAngleRef.current = angle
+      setPendulumAngle(angle)
 
       if (isPlaying) {
         animationRef.current = requestAnimationFrame(animate)
@@ -354,21 +228,17 @@ export default function Metronome() {
   }
 
   const togglePlay = () => {
-    if (bpm <= 0) {
-      setBpm(70)
-      setDisplayBpm(70)
-    }
     setIsPlaying(!isPlaying)
   }
 
   const increaseTempo = () => {
-    if (bpm < MAX_BPM && !isSlowingDown) {
+    if (bpm < MAX_BPM) {
       setBpm((prev) => prev + BPM_STEP)
     }
   }
 
   const decreaseTempo = () => {
-    if (bpm > MIN_BPM && !isSlowingDown) {
+    if (bpm > MIN_BPM) {
       setBpm((prev) => prev - BPM_STEP)
     }
   }
@@ -388,7 +258,7 @@ export default function Metronome() {
     decreaseTempo()
   }
 
-  // Touch and mouse event handlers (keeping existing implementation)
+  // Touch event handlers (same as circular version)
   const handleIncreaseTouchStart = (e: React.TouchEvent) => {
     e.preventDefault()
     if (increaseTouchActiveRef.current) return
@@ -494,6 +364,7 @@ export default function Metronome() {
     increaseTimeoutsRef.current = []
   }
 
+  // Decrease handlers (same pattern)
   const handleDecreaseTouchStart = (e: React.TouchEvent) => {
     e.preventDefault()
     if (decreaseTouchActiveRef.current) return
@@ -520,7 +391,7 @@ export default function Metronome() {
             clearInterval(decreaseIntervalRef.current)
             setBpm((prev) => (prev > MIN_BPM ? prev - BPM_STEP : prev))
 
-            increaseIntervalRef.current = setInterval(() => {
+            decreaseIntervalRef.current = setInterval(() => {
               setBpm((prev) => (prev > MIN_BPM ? prev - BPM_STEP : prev))
             }, 200)
           }
@@ -599,40 +470,45 @@ export default function Metronome() {
     decreaseTimeoutsRef.current = []
   }
 
-  // Calculate dot position on the circle
-  const dotX = 50 + 50 * Math.sin((dotPosition * Math.PI) / 180)
-  const dotY = 50 - 50 * Math.cos((dotPosition * Math.PI) / 180)
-
-  // Text color for BPM display - light gray when stopped, black when playing
+  // Text color for BPM display
   const bpmTextColor = isPlaying ? "#000" : "#aaa"
-
-  // Calculate final scale
-  const finalScale = scaleEffect
 
   return (
     <div className={styles.container}>
       <div
-        className={styles.metronomeCircle}
+        className={styles.metronomeBase}
         onClick={togglePlay}
         role="button"
         aria-label={isPlaying ? "Stop metronome" : "Start metronome"}
         tabIndex={0}
-        style={{
-          transform: `scale(${finalScale})`,
-          transition: isPlaying ? "transform 0.05s ease-out" : "transform 0.3s ease-out",
-        }}
       >
-        <div className={styles.topMarker} />
+        {/* SVG Triangle Frame */}
+        <svg width="350" height="303" className={styles.triangleSvg}>
+          {/* Triangle outline with 350px base */}
+          <polygon points="175,10 340,290 10,290" fill="none" stroke="#333" strokeWidth="4" />
+          {/* Vertical center line at apex */}
+          <line x1="175" y1="10" x2="175" y2="60" stroke="#333" strokeWidth="4" />
+        </svg>
+
+        {/* Pivot point at the bottom center of the triangle */}
+        <div className={styles.pivot} />
+
+        {/* Pendulum arm */}
         <div
-          className={styles.dot}
+          className={styles.pendulumArm}
           style={{
-            left: `${dotX}%`,
-            top: `${dotY}%`,
-            transform: `translate(-50%, -50%)`,
-            transition: "transform 0.05s ease-out",
-            backgroundColor: isPlaying ? "#d10000" : "#aaa",
+            transform: `rotate(${pendulumAngle}deg)`,
+            transformOrigin: "bottom center",
           }}
-        />
+        >
+          {/* Weight at the top of the arm */}
+          <div
+            className={styles.weight}
+            style={{
+              backgroundColor: isPlaying ? "#d10000" : "#aaa",
+            }}
+          />
+        </div>
       </div>
 
       <div className={styles.controls}>
@@ -651,7 +527,7 @@ export default function Metronome() {
         </button>
         <div className={styles.bpmDisplay}>
           <div className={styles.bpmValue} style={{ color: bpmTextColor }}>
-            {displayBpm}
+            {bpm}
           </div>
           <div className={styles.bpmLabel} style={{ color: bpmTextColor }}>
             BPM
