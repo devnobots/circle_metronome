@@ -1,0 +1,227 @@
+@font-face {
+  font-family: "Elegant Typewriter";
+  src: url("/fonts/elegant-typewriter.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1rem;
+  background-color: white;
+}
+
+.metronomeCircle {
+  position: relative;
+  width: 500px;
+  height: 500px;
+  max-width: 90vw;
+  max-height: 90vw;
+  border-radius: 50%;
+  border: 10px solid black;
+  background-image: url("/images/circular-halftone.png");
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.1s ease;
+}
+
+.metronomeCircle:active {
+  transform: scale(0.98);
+}
+
+.dot {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background-color: #d10000;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+}
+
+.bpmDisplay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  margin: 0 1rem;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bpmValue {
+  font-size: 3rem;
+  font-weight: bold;
+  line-height: 1;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bpmLabel {
+  font-size: 1.2rem;
+  font-weight: bold;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.75rem 1.5rem;
+  border-radius: 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tempoButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: black;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.1s ease, background-color 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.tempoButton:hover {
+  background-color: #333;
+}
+
+.tempoButton:active {
+  transform: scale(0.95);
+}
+
+.tempoButton:focus {
+  outline: none;
+}
+
+.currentTempo {
+  font-size: 2rem;
+  font-weight: bold;
+  min-width: 60px;
+  text-align: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .metronomeCircle {
+    width: 300px;
+    height: 300px;
+    border-width: 8px;
+  }
+
+  .dot {
+    width: 34px;
+    height: 34px;
+  }
+
+  .bpmValue {
+    font-size: 2.5rem;
+  }
+
+  .bpmLabel {
+    font-size: 1rem;
+  }
+
+  .tempoButton {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .metronomeCircle {
+    width: 250px;
+    height: 250px;
+    border-width: 6px;
+  }
+
+  .dot {
+    width: 30px;
+    height: 30px;
+  }
+
+  .bpmValue {
+    font-size: 2rem;
+  }
+
+  .bpmLabel {
+    font-size: 0.9rem;
+  }
+
+  .tempoButton {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* Update the top marker to extend both inward and outward from the circle */
+.topMarker {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 4px;
+  height: 60px; /* Increased height for longer line */
+  background-color: black;
+  transform: translate(-50%, -50%); /* Center the line so it extends equally in both directions */
+}
+
+/* Footer message styling with elegant typewriter font */
+.footerMessage {
+  text-align: center;
+  margin-top: 2rem;
+  padding: 1rem;
+  font-family: "Elegant Typewriter", monospace;
+  font-size: 1rem;
+  color: black;
+  max-width: 90%;
+  line-height: 1.4;
+  letter-spacing: 0.5px;
+}
