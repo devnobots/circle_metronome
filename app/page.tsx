@@ -8,7 +8,7 @@ import styles from "./metronome.module.css"
 
 export default function Metronome() {
   // ===== CONFIGURABLE VARIABLES =====
-  const MAX_TRIAL_SESSION_COUNT = 5 // After this many sessions, trial mode kicks in
+  const MAX_TRIAL_SESSION_COUNT = 2 // After this many sessions, trial mode kicks in
   const EXPIRED_TRIAL_RUN_TIME_SECONDS = 10 // How long metronome runs before decrement mode
 
   const [bpm, setBpm] = useState(70) // Default 70 BPM - this is the actual BPM used for timing
@@ -28,6 +28,11 @@ export default function Metronome() {
   const [sessionCount, setSessionCount] = useState(0)
   const [isTrialExpired, setIsTrialExpired] = useState(false)
   const [hasUpgraded, setHasUpgraded] = useState(false)
+
+  // Add these state variables after the existing state declarations
+  const [tapTimes, setTapTimes] = useState<number[]>([])
+  const [showTapButton, setShowTapButton] = useState(false)
+  const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Refs for audio and animation
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -145,6 +150,12 @@ export default function Metronome() {
     // Reset touch flags
     increaseTouchActiveRef.current = false
     decreaseTouchActiveRef.current = false
+
+    // Clear tap timeout
+    if (tapTimeoutRef.current) {
+      clearTimeout(tapTimeoutRef.current)
+      tapTimeoutRef.current = null
+    }
   }
 
   // Function to play a click tone using Web Audio API
@@ -177,6 +188,92 @@ export default function Metronome() {
     }
   }
 
+  // Function to play tap tone at 220 Hz
+  const playTapTone = () => {
+    if (!audioContextRef.current) return
+
+    try {
+      const context = audioContextRef.current
+
+      if (context.state === "suspended") {
+        context.resume()
+      }
+
+      const oscillator = context.createOscillator()
+      const gainNode = context.createGain()
+
+      oscillator.type = "sine"
+      oscillator.frequency.setValueAtTime(220, context.currentTime)
+
+      gainNode.gain.setValueAtTime(0.6, context.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.1)
+
+      oscillator.connect(gainNode)
+      gainNode.connect(context.destination)
+
+      oscillator.start(context.currentTime)
+      oscillator.stop(context.currentTime + 0.1)
+    } catch (error) {
+      console.error("Error playing tap tone:", error)
+    }
+  }
+
+  // Add the TAP button functions after the existing functions:
+
+  const handleTap = () => {
+    const now = Date.now()
+
+    // Play the tap tone
+    playTapTone()
+
+    // Clear existing timeout
+    if (tapTimeoutRef.current) {
+      clearTimeout(tapTimeoutRef.current)
+    }
+
+    setTapTimes((prev) => {
+      const newTimes = [...prev, now]
+
+      // Keep only the last 8 taps for better accuracy
+      if (newTimes.length > 8) {
+        newTimes.shift()
+      }
+
+      // Calculate BPM if we have at least 2 taps
+      if (newTimes.length >= 2) {
+        const intervals = []
+        for (let i = 1; i < newTimes.length; i++) {
+          intervals.push(newTimes[i] - newTimes[i - 1])
+        }
+
+        // Calculate average interval
+        const avgInterval = intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length
+
+        // Convert to BPM (60000 ms = 1 minute)
+        const calculatedBpm = Math.round(60000 / avgInterval)
+
+        // Only update if BPM is within reasonable range
+        if (calculatedBpm >= MIN_BPM && calculatedBpm <= MAX_BPM && !isSlowingDown) {
+          setBpm(calculatedBpm)
+        }
+      }
+
+      return newTimes
+    })
+
+    // Set timeout to end tap session after 2 seconds
+    tapTimeoutRef.current = setTimeout(() => {
+      setTapTimes([])
+      setShowTapButton(false)
+    }, 2000)
+  }
+
+  const startTapMode = () => {
+    setShowTapButton(true)
+    setTapTimes([])
+    setIsPlaying(false) // Stop the metronome when entering tap mode
+  }
+
   // Handle play/stop state changes
   useEffect(() => {
     if (isPlaying) {
@@ -196,7 +293,7 @@ export default function Metronome() {
         runningTimeRef.current += 1
 
         // Determine timeout based on trial status and upgrade status
-        let timeoutSeconds = 999999 // Default: no timeout for normal users (sessions 1-5)
+        let timeoutSeconds = 999999 // Default: no timeout for normal users (sessions 1-2)
 
         if (isTrialExpired && !hasUpgraded) {
           // Trial expired and not upgraded - use shorter timeout
@@ -205,10 +302,15 @@ export default function Metronome() {
           // User has upgraded - no timeout (set to very high number to effectively disable)
           timeoutSeconds = 999999
         }
-        // Note: For sessions 1-5 (not trial expired), timeoutSeconds remains 999999 (no timeout)
+        // Note: For sessions 1-2 (not trial expired), timeoutSeconds remains 999999 (no timeout)
 
-        if (runningTimeRef.current === timeoutSeconds && !isSlowingDown) {
+        if (runningTimeRef.current >= timeoutSeconds && !isSlowingDown) {
           setIsSlowingDown(true)
+          // Clear the interval once slowdown starts to stop the repeated logging
+          if (timeTrackingIntervalRef.current) {
+            clearInterval(timeTrackingIntervalRef.current)
+            timeTrackingIntervalRef.current = null
+          }
         }
       }, 1000)
     } else {
@@ -245,8 +347,8 @@ export default function Metronome() {
   useEffect(() => {
     // Only apply slowdown logic if user hasn't upgraded
     if (isSlowingDown && isPlaying && !hasUpgraded) {
-      // Check if dot is exactly at the top (within 2 degrees of 0)
-      const isAtTop = dotPosition <= 2 || dotPosition >= 358
+      // Check if dot is at the top (within 5 degrees of 0)
+      const isAtTop = dotPosition <= 5 || dotPosition >= 355
 
       if (isAtTop && !hasDecrementedThisCycleRef.current) {
         // We're at the top and haven't decremented this cycle yet
@@ -258,6 +360,7 @@ export default function Metronome() {
         } else {
           // Decrement BPM and mark that we've decremented this cycle
           setBpm(newBpm)
+          setDisplayBpm(newBpm)
           hasDecrementedThisCycleRef.current = true
 
           // Reset only the animation timing to prevent visual jerk, but preserve beat timing
@@ -277,8 +380,8 @@ export default function Metronome() {
             lastBeatTimeRef.current = now - newElapsedTime
           }
         }
-      } else if (dotPosition > 180) {
-        // Reset the decrement flag when we're past the halfway point (bottom half of circle)
+      } else if (dotPosition > 90 && dotPosition < 270) {
+        // Reset the decrement flag when we're in the middle range (90-270 degrees)
         // This ensures we only decrement once per complete cycle
         if (hasDecrementedThisCycleRef.current) {
           hasDecrementedThisCycleRef.current = false
@@ -326,10 +429,14 @@ export default function Metronome() {
   }
 
   // Track when dot reaches 75% position (270 degrees)
-  useEffect(() => {
+  const handle75Percent = () => {
     if (isPlaying && dotPosition >= 270 && !hasReached75Percent) {
       setHasReached75Percent(true)
     }
+  }
+
+  useEffect(() => {
+    handle75Percent()
   }, [dotPosition, isPlaying, hasReached75Percent])
 
   // Calculate zoom effect based on dot position (only after reaching 75% position)
@@ -645,7 +752,7 @@ export default function Metronome() {
             clearInterval(decreaseIntervalRef.current)
             setBpm((prev) => (prev > MIN_BPM ? prev - BPM_STEP : prev))
 
-            decreaseIntervalRef.current = setInterval(() => {
+            increaseIntervalRef.current = setInterval(() => {
               setBpm((prev) => (prev > MIN_BPM ? prev - BPM_STEP : prev))
             }, 200)
           }
@@ -709,41 +816,57 @@ export default function Metronome() {
       </div>
 
       {!showUpgradeMessage ? (
-        <div className={styles.controls}>
-          <button
-            className={styles.tempoButton}
-            onMouseDown={handleDecreaseMouseDown}
-            onMouseUp={handleDecreaseMouseUp}
-            onMouseLeave={handleDecreaseMouseUp}
-            onTouchStart={handleDecreaseTouchStart}
-            onTouchEnd={handleDecreaseTouchEnd}
-            onTouchCancel={handleDecreaseTouchEnd}
-            onContextMenu={(e) => e.preventDefault()}
-            aria-label="Decrease tempo"
-          >
-            <Minus size={24} />
-          </button>
-          <div className={styles.bpmDisplay}>
-            <div className={styles.bpmValue} style={{ color: bpmTextColor }}>
-              {displayBpm}
+        <div className={styles.controlsContainer}>
+          {showTapButton ? (
+            <button
+              className={`${styles.tapButtonAbove} ${styles.tapButtonActive}`}
+              onClick={handleTap}
+              aria-label="Tap tempo"
+            >
+              TAP
+            </button>
+          ) : (
+            <button className={styles.tapButtonAbove} onClick={startTapMode} aria-label="Start tap tempo">
+              TAP
+            </button>
+          )}
+
+          <div className={styles.controls}>
+            <button
+              className={styles.tempoButton}
+              onMouseDown={handleDecreaseMouseDown}
+              onMouseUp={handleDecreaseMouseUp}
+              onMouseLeave={handleDecreaseMouseUp}
+              onTouchStart={handleDecreaseTouchStart}
+              onTouchEnd={handleDecreaseTouchEnd}
+              onTouchCancel={handleDecreaseTouchEnd}
+              onContextMenu={(e) => e.preventDefault()}
+              aria-label="Decrease tempo"
+            >
+              <Minus size={24} />
+            </button>
+            <div className={styles.bpmDisplay}>
+              <div className={styles.bpmValue} style={{ color: bpmTextColor }}>
+                {displayBpm}
+              </div>
+              <div className={styles.bpmLabel} style={{ color: bpmTextColor }}>
+                BPM
+              </div>
             </div>
-            <div className={styles.bpmLabel} style={{ color: bpmTextColor }}>
-              BPM
-            </div>
+            <button
+              className={styles.tempoButton}
+              onMouseDown={handleIncreaseMouseDown}
+              onMouseUp={handleIncreaseMouseUp}
+              onMouseLeave={handleIncreaseMouseUp}
+              onTouchStart={handleIncreaseTouchStart}
+              onTouchEnd={handleIncreaseTouchEnd}
+              onTouchCancel={handleIncreaseTouchEnd}
+              onContextMenu={(e) => e.preventDefault()}
+              aria-label="Increase tempo"
+            >
+              <Plus size={24} />
+            </button>
           </div>
-          <button
-            className={styles.tempoButton}
-            onMouseDown={handleIncreaseMouseDown}
-            onMouseUp={handleIncreaseMouseUp}
-            onMouseLeave={handleIncreaseMouseUp}
-            onTouchStart={handleIncreaseTouchStart}
-            onTouchEnd={handleIncreaseTouchEnd}
-            onTouchCancel={handleIncreaseTouchEnd}
-            onContextMenu={(e) => e.preventDefault()}
-            aria-label="Increase tempo"
-          >
-            <Plus size={24} />
-          </button>
         </div>
       ) : (
         <div className={styles.upgradeMessage}>

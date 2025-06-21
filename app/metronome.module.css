@@ -102,6 +102,14 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+.controlsContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: -50px; /* Move up 50px from the original 1rem */
+}
+
 .controls {
   display: flex;
   align-items: center;
@@ -118,6 +126,7 @@
   -ms-user-select: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
+  transform: scale(0.9); /* Reduce size by 10% */
 }
 
 .tempoButton {
@@ -156,6 +165,59 @@
   outline: none;
 }
 
+.tapButtonAbove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 40px;
+  border-radius: 20px;
+  background-color: #e5e5e5;
+  color: #888;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.1s ease, background-color 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.tapButtonAbove:hover {
+  background-color: #d5d5d5;
+  color: #666;
+}
+
+.tapButtonAbove:active {
+  transform: scale(0.95);
+  background-color: #c5c5c5;
+}
+
+.tapButtonAbove:focus {
+  outline: none;
+}
+
+.tapButtonActive {
+  background-color: #baffba !important; /* Light green for tap mode */
+  color: #000 !important; /* Black text */
+}
+
+.tapButtonActive:hover {
+  background-color: #a8f0a8 !important; /* Slightly darker green on hover */
+  color: #000 !important;
+}
+
+.tapButtonActive:active {
+  background-color: #96e696 !important; /* Even darker green when pressed */
+  color: #000 !important;
+}
+
 .currentTempo {
   font-size: 2rem;
   font-weight: bold;
@@ -188,6 +250,12 @@
     width: 40px;
     height: 40px;
   }
+
+  .tapButtonAbove {
+    width: 70px;
+    height: 36px;
+    font-size: 0.8rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -213,6 +281,12 @@
   .tempoButton {
     width: 36px;
     height: 36px;
+  }
+
+  .tapButtonAbove {
+    width: 65px;
+    height: 34px;
+    font-size: 0.75rem;
   }
 }
 
@@ -325,7 +399,7 @@
 /* Debug information styling */
 .debugInfo {
   position: fixed;
-  bottom: 60px;
+  bottom: 10px;
   left: 10px;
   background-color: rgba(0, 0, 0, 0.8);
   color: white;
@@ -341,66 +415,24 @@
   margin-bottom: 2px;
 }
 
-/* Clear session button styling */
+/* Clear Session Button for Testing - positioned below debug info */
 .clearSessionButton {
   position: fixed;
   bottom: 10px;
   left: 10px;
+  margin-top: 10px;
   background-color: #ff4444;
   color: white;
-  border: none;
   padding: 8px 12px;
+  border: none;
   border-radius: 5px;
   font-family: monospace;
   font-size: 12px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
   z-index: 1000;
+  transform: translateY(120px); /* Move it below the debug box */
 }
 
 .clearSessionButton:hover {
   background-color: #ff6666;
-}
-
-/* Responsive adjustments for upgrade message */
-@media (max-width: 768px) {
-  .upgradeMessage {
-    padding: 1.5rem;
-    margin-top: -70px; /* Adjusted for mobile */
-  }
-
-  .upgradeHeadline {
-    font-size: 1.7rem;
-  }
-
-  .upgradeBody {
-    font-size: 1rem;
-  }
-
-  .upgradeButton,
-  .standardButton {
-    padding: 0.9rem 1.8rem;
-    font-size: 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .upgradeMessage {
-    padding: 1rem;
-    margin-top: -40px; /* Adjusted for small mobile */
-  }
-
-  .upgradeHeadline {
-    font-size: 1.5rem;
-  }
-
-  .upgradeBody {
-    font-size: 0.95rem;
-  }
-
-  .upgradeButton,
-  .standardButton {
-    padding: 0.8rem 1.5rem;
-    font-size: 0.95rem;
-  }
 }
