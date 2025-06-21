@@ -23,10 +23,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start; /* Changed from center to flex-start */
   min-height: 100vh;
-  padding: 1rem;
+  padding: 0.5rem; /* Reduced from 1rem */
   background-color: white;
+  padding-top: 2rem; /* Add specific top padding */
 }
 
 .metronomeCircle {
@@ -321,16 +322,16 @@
   justify-content: center;
   text-align: center;
   max-width: 500px;
-  margin-top: -100px;
-  padding: 3rem 2rem 2rem 2rem; /* Increased top padding for generous breathing room */
+  margin-top: -80px; /* Reduced from -100px */
+  padding: 2rem 2rem 1rem 2rem; /* Reduced padding */
   font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 .upgradeHeadline {
   font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  font-weight: 700; /* Bold */
-  font-size: 2rem;
-  margin-bottom: 2rem; /* Increased from 1.5rem for generous bottom padding */
+  font-weight: 700;
+  font-size: 1.5rem; /* Reduced from 2rem */
+  margin-bottom: 1rem; /* Reduced from 1.5rem for generous bottom padding */
   color: #000;
   letter-spacing: -0.02em; /* Very slightly tightened for visual cohesion */
   line-height: 1.2;
@@ -339,10 +340,10 @@
 .upgradeBody {
   font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-weight: 400; /* Regular */
-  font-size: 1.1rem;
-  line-height: 1.8; /* Increased by 20% from 1.5 for airy, elegant feel */
+  font-size: 0.9rem; /* Reduced from 1.1rem */
+  line-height: 1.5; /* Increased by 20% from 1.5 for airy, elegant feel */
   color: #333;
-  margin-bottom: 2.5rem; /* Increased for generous bottom padding */
+  margin-bottom: 1.5rem; /* Increased for generous bottom padding */
   letter-spacing: 0.05em; /* Very slightly open for readability */
   text-align: left; /* Left-aligned for better readability */
   max-width: 45ch; /* Approximately 50-70 characters per line */
@@ -357,8 +358,8 @@
 }
 
 .upgradeButton {
-  padding: 1rem 2rem;
-  font-size: 1.1rem;
+  padding: 0.75rem 1.5rem; /* Reduced from 1rem 2rem */
+  font-size: 1rem; /* Reduced from 1.1rem */
   font-weight: bold;
   background-color: #000;
   color: white;
@@ -376,8 +377,8 @@
 }
 
 .standardButton {
-  padding: 1rem 2rem;
-  font-size: 1.1rem;
+  padding: 0.75rem 1.5rem; /* Reduced from 1rem 2rem */
+  font-size: 1rem; /* Reduced from 1.1rem */
   font-weight: bold;
   background-color: transparent;
   color: #000;
