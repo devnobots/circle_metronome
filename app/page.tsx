@@ -887,8 +887,7 @@ export default function Metronome() {
         </div>
       )}
 
-      {/* Debug Information - COMMENTED OUT */}
-      {/*
+      {/* Debug Information */}
       <div className={styles.debugInfo}>
         <div>Current Session Count: {sessionCount}</div>
         <div>Max Trial Session Count: {MAX_TRIAL_SESSION_COUNT}</div>
@@ -896,7 +895,6 @@ export default function Metronome() {
         <div>Trial Expired: {isTrialExpired ? "Yes" : "No"}</div>
         <div>Has Upgraded: {hasUpgraded ? "Yes" : "No"}</div>
       </div>
-      */}
 
       {/* Clear Session Button for Testing - COMMENTED OUT */}
       {/*
