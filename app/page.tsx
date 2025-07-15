@@ -8,8 +8,8 @@ import styles from "./metronome.module.css"
 
 export default function Metronome() {
   // ===== CONFIGURABLE VARIABLES =====
-  const MAX_TRIAL_SESSION_COUNT = 100 // After this many sessions, trial mode kicks in
-  const EXPIRED_TRIAL_RUN_TIME_SECONDS = 10 // How long metronome runs before decrement mode
+  const MAX_TRIAL_SESSION_COUNT = 5 // After this many sessions, trial mode kicks in
+  const EXPIRED_TRIAL_RUN_TIME_SECONDS = 300 // How long metronome runs before decrement mode
 
   const [bpm, setBpm] = useState(70) // Default 70 BPM - this is the actual BPM used for timing
   const [isPlaying, setIsPlaying] = useState(false)
