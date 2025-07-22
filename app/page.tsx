@@ -555,9 +555,13 @@ export default function Metronome() {
 
   // Handle upgrade button click
   const handleUpgrade = () => {
-    localStorage.setItem("metronome_has_upgraded", "true");
-    setHasUpgraded(true);
+    // localStorage.setItem("metronome_has_upgraded", "true");
+    // setHasUpgraded(true);
     setShowUpgradeMessage(false);
+
+    if (typeof window !== 'undefined' && (window as any).flutter_inappwebview) {
+      (window as any).flutter_inappwebview.callHandler('upgradeButtonHandler');
+    }
   };
 
   // Handle 5-minute sessions button click
@@ -565,6 +569,9 @@ export default function Metronome() {
     // For now, just hide the upgrade message
     // You can implement 5-minute session logic here later
     setShowUpgradeMessage(false);
+    if (typeof window !== 'undefined' && (window as any).flutter_inappwebview) {
+      (window as any).flutter_inappwebview.callHandler('fiveMinuteSessionButtonHandler');
+    }
   };
 
   // Handle clear session count for testing
@@ -576,6 +583,159 @@ export default function Metronome() {
     setIsTrialExpired(false);
     setShowUpgradeMessage(false);
   };
+
+
+
+//--------------------------------
+
+
+useEffect(() => {
+  // Expose getters and setters to window for Flutter access
+  (window as any).metronomeAPI = {
+    // Getters
+    getIsPlaying: () => isPlaying,
+    getIsTrialExpired: () => isTrialExpired,
+    getHasUpgraded: () => hasUpgraded,
+    getSessionCount: () => sessionCount,
+    
+    // Setters with side effect handling
+    setIsPlaying: (playing: boolean) => {
+      // Only update if the value is actually changing
+      if (playing !== isPlaying) {
+        setIsPlaying(playing);
+      }
+    },
+    
+    setIsShowingUpgradeMessage: (showing: boolean) => {
+      // Only update if the value is actually changing
+      if (showing !== showUpgradeMessage) {
+        setShowUpgradeMessage(showing);
+      }
+    },
+    
+    setIsTrialExpired: (expired: boolean) => {
+      // Only update if the value is actually changing
+      if (expired !== isTrialExpired) {
+        setIsTrialExpired(expired);
+      }
+    },
+    
+    setHasUpgraded: (upgraded: boolean) => {
+      // Only update if the value is actually changing
+      if (upgraded !== hasUpgraded) {
+        setHasUpgraded(upgraded);
+        
+        // Handle upgrade-related side effects
+        if (upgraded) {
+          // User upgraded - hide upgrade message and reset trial status
+          setShowUpgradeMessage(false);
+          setIsTrialExpired(false);
+          
+          // If metronome is currently slowing down due to trial expiration,
+          // stop the slowdown and restore normal operation
+          if (isSlowingDown) {
+            setIsSlowingDown(false);
+            setBpm(originalBpmRef.current);
+            setDisplayBpm(originalBpmRef.current);
+          }
+        }
+      }
+    },
+    
+    setSessionCount: (count: number) => {
+      // Validate count is a positive number
+      const validCount = Math.max(0, Math.floor(count));
+      
+      // Only update if the value is actually changing
+      if (validCount !== sessionCount) {
+        setSessionCount(validCount);
+        
+        // Handle session count side effects
+        if (validCount > MAX_TRIAL_SESSION_COUNT && !hasUpgraded) {
+          // Trial has expired
+          setIsTrialExpired(true);
+        } else if (validCount <= MAX_TRIAL_SESSION_COUNT) {
+          // Trial is still active
+          setIsTrialExpired(false);
+        }
+      }
+    },
+    
+    // Convenience methods
+    resetTrial: () => {
+      setSessionCount(0);
+      setHasUpgraded(false);
+      setIsTrialExpired(false);
+      setShowUpgradeMessage(false);
+      
+      // Reset any slowdown state
+      if (isSlowingDown) {
+        setIsSlowingDown(false);
+        setBpm(originalBpmRef.current);
+        setDisplayBpm(originalBpmRef.current);
+      }
+    },
+    
+    upgradeUser: () => {
+      setHasUpgraded(true);
+      setShowUpgradeMessage(false);
+      setIsTrialExpired(false);
+      
+      // Reset any slowdown state
+      if (isSlowingDown) {
+        setIsSlowingDown(false);
+        setBpm(originalBpmRef.current);
+        setDisplayBpm(originalBpmRef.current);
+      }
+    },
+    
+    // Get all state at once
+    getState: () => ({
+      isPlaying,
+      isTrialExpired,
+      hasUpgraded,
+      sessionCount,
+      isSlowingDown,
+      bpm,
+      displayBpm
+    }),
+    
+    // Set multiple values at once
+    setState: (newState: {
+      isPlaying?: boolean;
+      isTrialExpired?: boolean;
+      hasUpgraded?: boolean;
+      sessionCount?: number;
+    }) => {
+      // Update each field with proper side effect handling
+      if (newState.isPlaying !== undefined) {
+        (window as any).metronomeAPI.setIsPlaying(newState.isPlaying);
+      }
+      if (newState.isTrialExpired !== undefined) {
+        (window as any).metronomeAPI.setIsTrialExpired(newState.isTrialExpired);
+      }
+      if (newState.hasUpgraded !== undefined) {
+        (window as any).metronomeAPI.setHasUpgraded(newState.hasUpgraded);
+      }
+      if (newState.sessionCount !== undefined) {
+        (window as any).metronomeAPI.setSessionCount(newState.sessionCount);
+      }
+    }
+  };
+}, [isPlaying, isTrialExpired, hasUpgraded, sessionCount, isSlowingDown, bpm, displayBpm]);
+
+
+
+
+
+
+//--------------------------------
+
+
+
+
+
+
 
   // Debounced functions
   const debouncedIncrease = () => {
